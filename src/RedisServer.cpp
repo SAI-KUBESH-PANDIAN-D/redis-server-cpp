@@ -52,6 +52,10 @@ void RedisServer::handleClient(int client_fd) {
             if (tokens.size() >= 2) response = db.get(tokens[1]);
             else response = "-ERR wrong number of arguments for 'get'\r\n";
         } 
+        else if (tokens[0] == "SAVE" || tokens[0] == "save") {
+            db.save();
+            response = "+OK\r\n";
+        }
         else {
             response = "-ERR unknown command\r\n";
         }
