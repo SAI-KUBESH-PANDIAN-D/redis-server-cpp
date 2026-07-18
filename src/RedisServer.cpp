@@ -3,6 +3,7 @@
 #include <netinet/in.h> 
 #include <unistd.h>     
 #include <cstring>
+#include <thread>
 
 RedisServer::RedisServer(int port) {
     this->port = port;
@@ -13,6 +14,24 @@ RedisServer::~RedisServer() {
     if (server_fd != -1) {
         close(server_fd);
     }
+}
+
+void RedisServer::handleClient(int client_fd) {
+    char buffer[1024] = {0};
+    while (true) {
+        memset(buffer, 0, 1024);
+        int bytes_read = read(client_fd, buffer, 1024);
+        
+        if (bytes_read <= 0) {
+            std::cout << "Client disconnected.\n";
+            break; // Exit the loop if client hangs up
+        }
+
+        std::cout << "Client says: " << buffer;
+        const char* response = "+PONG\r\n";
+        write(client_fd, response, strlen(response));
+    }
+    close(client_fd);
 }
 
 void RedisServer::run() {
@@ -50,7 +69,6 @@ void RedisServer::run() {
         struct sockaddr_in client_addr;
         socklen_t client_len = sizeof(client_addr);
         
-        // Accept the connection (Pick up the phone)
         int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
         if (client_fd < 0) {
             std::cerr << "Error: Failed to accept connection\n";
@@ -59,16 +77,7 @@ void RedisServer::run() {
 
         std::cout << "A new client connected!\n";
 
-        // Read the client's message
-        char buffer[1024] = {0};
-        read(client_fd, buffer, 1024);
-        std::cout << "Client says: " << buffer << "\n";
-
-        // Send back a PONG response in RESP (Redis Serialization Protocol) format
-        const char* response = "+PONG\r\n";
-        write(client_fd, response, strlen(response));
-
-        // Close the connection for now
-        close(client_fd);
+        // Create a new thread (worker) for this client and store it in our vector
+        client_threads.emplace_back(&RedisServer::handleClient, this, client_fd);
     }
 }
