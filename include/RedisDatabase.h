@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <fstream>
+#include <vector>
 
 class RedisDatabase {
 private:
@@ -10,10 +11,15 @@ private:
     std::mutex db_mutex;
 
 public:
-    RedisDatabase(); // Constructor to load data on startup
+    RedisDatabase();
     std::string set(const std::string& key, const std::string& value);
     std::string get(const std::string& key);
     
-    void save(); // Saves data to disk
-    void load(); // Loads data from disk
+    // New Commands
+    std::string del(const std::string& key);
+    std::string exists(const std::string& key);
+    std::string keys();
+    
+    void save();
+    void load();
 };

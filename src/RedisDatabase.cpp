@@ -41,3 +41,30 @@ void RedisDatabase::load() {
     file.close();
     std::cout << "Database loaded from disk.\n";
 }
+
+std::string RedisDatabase::del(const std::string& key) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    if (store.erase(key)) {
+        return ":1\r\n"; // Redis standard integer reply for 1 deleted
+    }
+    return ":0\r\n"; // 0 deleted
+}
+
+std::string RedisDatabase::exists(const std::string& key) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    if (store.find(key) != store.end()) {
+        return ":1\r\n"; // Exists
+    }
+    return ":0\r\n"; // Does not exist
+}
+
+std::string RedisDatabase::keys() {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    if (store.empty()) return "*0\r\n"; // Empty array
+
+    std::string response = "*" + std::to_string(store.size()) + "\r\n";
+    for (const auto& pair : store) {
+        response += "$" + std::to_string(pair.first.length()) + "\r\n" + pair.first + "\r\n";
+    }
+    return response;
+}

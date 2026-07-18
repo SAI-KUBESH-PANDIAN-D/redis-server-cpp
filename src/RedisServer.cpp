@@ -56,6 +56,17 @@ void RedisServer::handleClient(int client_fd) {
             db.save();
             response = "+OK\r\n";
         }
+        else if (tokens[0] == "DEL" || tokens[0] == "del") {
+            if (tokens.size() >= 2) response = db.del(tokens[1]);
+            else response = "-ERR wrong number of arguments for 'del'\r\n";
+        }
+        else if (tokens[0] == "EXISTS" || tokens[0] == "exists") {
+            if (tokens.size() >= 2) response = db.exists(tokens[1]);
+            else response = "-ERR wrong number of arguments for 'exists'\r\n";
+        }
+        else if (tokens[0] == "KEYS" || tokens[0] == "keys") {
+            response = db.keys();
+        }
         else {
             response = "-ERR unknown command\r\n";
         }
