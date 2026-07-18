@@ -4,6 +4,8 @@
 #include <unistd.h>     
 #include <cstring>
 #include <thread>
+#include <sstream>
+#include <vector>
 
 RedisServer::RedisServer(int port) {
     this->port = port;
@@ -24,12 +26,37 @@ void RedisServer::handleClient(int client_fd) {
         
         if (bytes_read <= 0) {
             std::cout << "Client disconnected.\n";
-            break; // Exit the loop if client hangs up
+            break;
         }
 
-        std::cout << "Client says: " << buffer;
-        const char* response = "+PONG\r\n";
-        write(client_fd, response, strlen(response));
+        // Parse the input into tokens (words)
+        std::string command(buffer);
+        std::istringstream iss(command);
+        std::vector<std::string> tokens;
+        std::string token;
+        while (iss >> token) {
+            tokens.push_back(token);
+        }
+
+        if (tokens.empty()) continue;
+
+        std::string response;
+        if (tokens[0] == "PING" || tokens[0] == "ping") {
+            response = "+PONG\r\n";
+        } 
+        else if (tokens[0] == "SET" || tokens[0] == "set") {
+            if (tokens.size() >= 3) response = db.set(tokens[1], tokens[2]);
+            else response = "-ERR wrong number of arguments for 'set'\r\n";
+        } 
+        else if (tokens[0] == "GET" || tokens[0] == "get") {
+            if (tokens.size() >= 2) response = db.get(tokens[1]);
+            else response = "-ERR wrong number of arguments for 'get'\r\n";
+        } 
+        else {
+            response = "-ERR unknown command\r\n";
+        }
+
+        write(client_fd, response.c_str(), response.length());
     }
     close(client_fd);
 }
