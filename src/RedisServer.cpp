@@ -47,6 +47,28 @@ void RedisServer::run() {
     std::cout << "Listening on port " << port << "...\n";
 
     while (true) {
-        // Client acceptance logic goes here later
+        struct sockaddr_in client_addr;
+        socklen_t client_len = sizeof(client_addr);
+        
+        // Accept the connection (Pick up the phone)
+        int client_fd = accept(server_fd, (struct sockaddr*)&client_addr, &client_len);
+        if (client_fd < 0) {
+            std::cerr << "Error: Failed to accept connection\n";
+            continue;
+        }
+
+        std::cout << "A new client connected!\n";
+
+        // Read the client's message
+        char buffer[1024] = {0};
+        read(client_fd, buffer, 1024);
+        std::cout << "Client says: " << buffer << "\n";
+
+        // Send back a PONG response in RESP (Redis Serialization Protocol) format
+        const char* response = "+PONG\r\n";
+        write(client_fd, response, strlen(response));
+
+        // Close the connection for now
+        close(client_fd);
     }
 }
