@@ -103,6 +103,14 @@ void RedisServer::handleClient(int client_fd) {
             if (tokens.size() >= 2) response = db.hgetall(tokens[1]);
             else response = "-ERR wrong number of arguments for 'hgetall'\r\n";
         }
+        else if (tokens[0] == "EXPIRE" || tokens[0] == "expire") {
+            if (tokens.size() >= 3) {
+                int seconds = std::stoi(tokens[2]);
+                response = db.expire(tokens[1], seconds);
+            } else {
+                response = "-ERR wrong number of arguments for 'expire'\r\n";
+            }
+        }
         else {
             response = "-ERR unknown command\r\n";
         }

@@ -4,6 +4,7 @@
 #include <mutex>
 #include <fstream>
 #include <vector>
+#include <chrono>
 
 class RedisDatabase {
 private:
@@ -11,7 +12,10 @@ private:
     std::unordered_map<std::string, std::vector<std::string>> list_store;
     // New store for Hashes (A map inside a map)
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> hash_store; 
+    std::unordered_map<std::string, std::chrono::steady_clock::time_point> expiry_store;
     std::mutex db_mutex;
+
+    bool isExpired(const std::string& key);
 
 public:
     RedisDatabase();
@@ -33,6 +37,9 @@ public:
     std::string hget(const std::string& key, const std::string& field);
     std::string hdel(const std::string& key, const std::string& field);
     std::string hgetall(const std::string& key);
+
+    // Expiration
+    std::string expire(const std::string& key, int seconds);
 
     void save();
     void load();

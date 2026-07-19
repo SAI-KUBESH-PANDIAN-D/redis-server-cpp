@@ -5,6 +5,21 @@ RedisDatabase::RedisDatabase() {
     load(); // Automatically load data when the server turns on
 }
 
+bool RedisDatabase::isExpired(const std::string& key) {
+    if (expiry_store.find(key) != expiry_store.end()) {
+        auto now = std::chrono::steady_clock::now();
+        if (now > expiry_store[key]) {
+            // Time is up! Delete from all stores
+            store.erase(key);
+            list_store.erase(key);
+            hash_store.erase(key);
+            expiry_store.erase(key);
+            return true;
+        }
+    }
+    return false;
+}
+
 std::string RedisDatabase::set(const std::string& key, const std::string& value) {
     std::lock_guard<std::mutex> lock(db_mutex);
     store[key] = value;
@@ -13,10 +28,19 @@ std::string RedisDatabase::set(const std::string& key, const std::string& value)
 
 std::string RedisDatabase::get(const std::string& key) {
     std::lock_guard<std::mutex> lock(db_mutex);
+    if (isExpired(key)) return "$-1\r\n"; // Check expiry first!
+    
     if (store.find(key) != store.end()) {
         return "+" + store[key] + "\r\n";
     }
     return "$-1\r\n";
+}
+
+std::string RedisDatabase::expire(const std::string& key, int seconds) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    auto now = std::chrono::steady_clock::now();
+    expiry_store[key] = now + std::chrono::seconds(seconds);
+    return ":1\r\n";
 }
 
 void RedisDatabase::save() {
