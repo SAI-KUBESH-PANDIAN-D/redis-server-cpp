@@ -68,3 +68,43 @@ std::string RedisDatabase::keys() {
     }
     return response;
 }
+
+std::string RedisDatabase::lpush(const std::string& key, const std::string& value) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    list_store[key].insert(list_store[key].begin(), value);
+    return ":" + std::to_string(list_store[key].size()) + "\r\n";
+}
+
+std::string RedisDatabase::rpush(const std::string& key, const std::string& value) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    list_store[key].push_back(value);
+    return ":" + std::to_string(list_store[key].size()) + "\r\n";
+}
+
+std::string RedisDatabase::lpop(const std::string& key) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    if (list_store.find(key) == list_store.end() || list_store[key].empty()) {
+        return "$-1\r\n"; // Null/Empty
+    }
+    std::string val = list_store[key].front();
+    list_store[key].erase(list_store[key].begin());
+    return "+" + val + "\r\n";
+}
+
+std::string RedisDatabase::rpop(const std::string& key) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    if (list_store.find(key) == list_store.end() || list_store[key].empty()) {
+        return "$-1\r\n";
+    }
+    std::string val = list_store[key].back();
+    list_store[key].pop_back();
+    return "+" + val + "\r\n";
+}
+
+std::string RedisDatabase::llen(const std::string& key) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    if (list_store.find(key) == list_store.end()) {
+        return ":0\r\n";
+    }
+    return ":" + std::to_string(list_store[key].size()) + "\r\n";
+}

@@ -1,4 +1,4 @@
-#include "../include/RedisServer.h"
+    #include "../include/RedisServer.h"
 #include <sys/socket.h> 
 #include <netinet/in.h> 
 #include <unistd.h>     
@@ -8,7 +8,7 @@
 #include <vector>
 
 RedisServer::RedisServer(int port) {
-    this->port = port;
+    this->port = port;  
     this->server_fd = -1;
 }
 
@@ -66,6 +66,26 @@ void RedisServer::handleClient(int client_fd) {
         }
         else if (tokens[0] == "KEYS" || tokens[0] == "keys") {
             response = db.keys();
+        }
+        else if (tokens[0] == "LPUSH" || tokens[0] == "lpush") {
+            if (tokens.size() >= 3) response = db.lpush(tokens[1], tokens[2]);
+            else response = "-ERR wrong number of arguments for 'lpush'\r\n";
+        }
+        else if (tokens[0] == "RPUSH" || tokens[0] == "rpush") {
+            if (tokens.size() >= 3) response = db.rpush(tokens[1], tokens[2]);
+            else response = "-ERR wrong number of arguments for 'rpush'\r\n";
+        }
+        else if (tokens[0] == "LPOP" || tokens[0] == "lpop") {
+            if (tokens.size() >= 2) response = db.lpop(tokens[1]);
+            else response = "-ERR wrong number of arguments for 'lpop'\r\n";
+        }
+        else if (tokens[0] == "RPOP" || tokens[0] == "rpop") {
+            if (tokens.size() >= 2) response = db.rpop(tokens[1]);
+            else response = "-ERR wrong number of arguments for 'rpop'\r\n";
+        }
+        else if (tokens[0] == "LLEN" || tokens[0] == "llen") {
+            if (tokens.size() >= 2) response = db.llen(tokens[1]);
+            else response = "-ERR wrong number of arguments for 'llen'\r\n";
         }
         else {
             response = "-ERR unknown command\r\n";
