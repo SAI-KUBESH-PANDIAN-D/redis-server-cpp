@@ -1,4 +1,5 @@
-    #include "../include/RedisServer.h"
+#include "../include/RedisServer.h"
+#include "../include/RedisCommandHandler.h"
 #include <sys/socket.h> 
 #include <netinet/in.h> 
 #include <unistd.h>     
@@ -29,7 +30,6 @@ void RedisServer::handleClient(int client_fd) {
             break;
         }
 
-        // Parse the input into tokens (words)
         std::string command(buffer);
         std::istringstream iss(command);
         std::vector<std::string> tokens;
@@ -40,80 +40,8 @@ void RedisServer::handleClient(int client_fd) {
 
         if (tokens.empty()) continue;
 
-        std::string response;
-        if (tokens[0] == "PING" || tokens[0] == "ping") {
-            response = "+PONG\r\n";
-        } 
-        else if (tokens[0] == "SET" || tokens[0] == "set") {
-            if (tokens.size() >= 3) response = db.set(tokens[1], tokens[2]);
-            else response = "-ERR wrong number of arguments for 'set'\r\n";
-        } 
-        else if (tokens[0] == "GET" || tokens[0] == "get") {
-            if (tokens.size() >= 2) response = db.get(tokens[1]);
-            else response = "-ERR wrong number of arguments for 'get'\r\n";
-        } 
-        else if (tokens[0] == "SAVE" || tokens[0] == "save") {
-            db.save();
-            response = "+OK\r\n";
-        }
-        else if (tokens[0] == "DEL" || tokens[0] == "del") {
-            if (tokens.size() >= 2) response = db.del(tokens[1]);
-            else response = "-ERR wrong number of arguments for 'del'\r\n";
-        }
-        else if (tokens[0] == "EXISTS" || tokens[0] == "exists") {
-            if (tokens.size() >= 2) response = db.exists(tokens[1]);
-            else response = "-ERR wrong number of arguments for 'exists'\r\n";
-        }
-        else if (tokens[0] == "KEYS" || tokens[0] == "keys") {
-            response = db.keys();
-        }
-        else if (tokens[0] == "LPUSH" || tokens[0] == "lpush") {
-            if (tokens.size() >= 3) response = db.lpush(tokens[1], tokens[2]);
-            else response = "-ERR wrong number of arguments for 'lpush'\r\n";
-        }
-        else if (tokens[0] == "RPUSH" || tokens[0] == "rpush") {
-            if (tokens.size() >= 3) response = db.rpush(tokens[1], tokens[2]);
-            else response = "-ERR wrong number of arguments for 'rpush'\r\n";
-        }
-        else if (tokens[0] == "LPOP" || tokens[0] == "lpop") {
-            if (tokens.size() >= 2) response = db.lpop(tokens[1]);
-            else response = "-ERR wrong number of arguments for 'lpop'\r\n";
-        }
-        else if (tokens[0] == "RPOP" || tokens[0] == "rpop") {
-            if (tokens.size() >= 2) response = db.rpop(tokens[1]);
-            else response = "-ERR wrong number of arguments for 'rpop'\r\n";
-        }
-        else if (tokens[0] == "LLEN" || tokens[0] == "llen") {
-            if (tokens.size() >= 2) response = db.llen(tokens[1]);
-            else response = "-ERR wrong number of arguments for 'llen'\r\n";
-        }
-        else if (tokens[0] == "HSET" || tokens[0] == "hset") {
-            if (tokens.size() >= 4) response = db.hset(tokens[1], tokens[2], tokens[3]);
-            else response = "-ERR wrong number of arguments for 'hset'\r\n";
-        }
-        else if (tokens[0] == "HGET" || tokens[0] == "hget") {
-            if (tokens.size() >= 3) response = db.hget(tokens[1], tokens[2]);
-            else response = "-ERR wrong number of arguments for 'hget'\r\n";
-        }
-        else if (tokens[0] == "HDEL" || tokens[0] == "hdel") {
-            if (tokens.size() >= 3) response = db.hdel(tokens[1], tokens[2]);
-            else response = "-ERR wrong number of arguments for 'hdel'\r\n";
-        }
-        else if (tokens[0] == "HGETALL" || tokens[0] == "hgetall") {
-            if (tokens.size() >= 2) response = db.hgetall(tokens[1]);
-            else response = "-ERR wrong number of arguments for 'hgetall'\r\n";
-        }
-        else if (tokens[0] == "EXPIRE" || tokens[0] == "expire") {
-            if (tokens.size() >= 3) {
-                int seconds = std::stoi(tokens[2]);
-                response = db.expire(tokens[1], seconds);
-            } else {
-                response = "-ERR wrong number of arguments for 'expire'\r\n";
-            }
-        }
-        else {
-            response = "-ERR unknown command\r\n";
-        }
+        // Delegate all the heavy lifting to the Command Handler!
+        std::string response = RedisCommandHandler::handle(tokens, db);
 
         write(client_fd, response.c_str(), response.length());
     }
