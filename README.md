@@ -1,28 +1,30 @@
-# Redis Server (C++ Implementation)
+# Build Your Own Redis - C++ In-Memory Database
 
-A custom, high-performance Redis Server built from scratch in C++. This project implements the core components of a Redis-compatible in-memory data structure store, including a custom TCP server, multi-client concurrency using threads, the Redis Serialization Protocol (RESP) parser, and persistent storage.
+![C++](https://img.shields.io/badge/C++-17-blue.svg)
+![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-## Features
+## Overview
+A high-performance, multi-threaded, persistent in-memory Key-Value store built entirely from scratch in C++. This project is a custom implementation of a Redis-compatible server, engineered using raw POSIX sockets without any external dependencies. It demonstrates advanced systems programming concepts, including thread-safe concurrency, custom protocol parsing, and data persistence.
 
-- **Multi-Client Concurrency:** Handles multiple simultaneous client connections using thread-per-client architecture (`std::thread`).
-- **In-Memory Data Structures:** Supports Strings, Lists, and Hashes with thread-safe operations (`std::mutex`).
-- **RESP Protocol Support:** Fully parses and responds using the standard Redis Serialization Protocol, meaning you can use the standard `redis-cli` to interact with it.
-- **Data Persistence:** Can snapshot the current database state to disk (`dump.txt`) and automatically reload it upon startup.
-- **Lazy Expiration:** Supports setting Time-To-Live (TTL) on keys, automatically expiring and removing them when accessed after the deadline.
+## Core Features
+- **Custom TCP/IP Server:** Built from the ground up using POSIX sockets (`<sys/socket.h>`) for low-level network communication.
+- **Concurrency & Thread Safety:** Employs a thread-per-client execution model using `std::thread`. All data structures are protected via `std::mutex` and `std::lock_guard`, ensuring safe concurrent reads and writes across multiple client connections.
+- **Data Persistence:** Implements a snapshotting mechanism that saves the current state of memory to disk (`dump.txt`) and automatically reloads it upon server initialization.
+- **Time-To-Live (TTL) / Expiration:** Features a lazy expiration system using `<chrono>` to track and automatically evict keys once their TTL has elapsed.
+- **Custom RESP Parser:** Includes a custom parser for the standard Redis Serialization Protocol (RESP), allowing the server to understand and process standard client requests.
 
 ## Supported Commands
 
-### Server & Connection
-- `PING` - Test the connection (returns `PONG`).
-- `SAVE` - Persist the current database state to disk.
-
-### String / Key-Value
+### Key/Value & Server
 - `SET <key> <value>` - Set the string value of a key.
 - `GET <key>` - Get the value of a key.
 - `DEL <key>` - Delete a key.
 - `EXISTS <key>` - Determine if a key exists.
 - `KEYS` - Return all keys in the database.
+- `SAVE` - Persist the database state to disk.
 - `EXPIRE <key> <seconds>` - Set a key's time to live in seconds.
+- `PING` - Test the server connection.
 
 ### Lists
 - `LPUSH <key> <value>` - Prepend a value to a list.
@@ -37,50 +39,43 @@ A custom, high-performance Redis Server built from scratch in C++. This project 
 - `HDEL <key> <field>` - Delete a hash field.
 - `HGETALL <key>` - Get all the fields and values in a hash.
 
-## Getting Started
+## Tech Stack
+- **Language:** C++17
+- **Networking:** POSIX Sockets API
+- **Concurrency:** `std::thread`, `std::mutex`, `std::lock_guard`
+- **Data Structures:** `std::unordered_map`, `std::vector`, `std::string`
+- **Time/Metrics:** `std::chrono`
 
-### Prerequisites
-- A POSIX-compliant environment (Linux, macOS, or WSL on Windows). Note: If building on Windows natively, use WSL or MinGW.
-- `g++` compiler with C++11 (or higher) support.
-- `pthread` library.
+## How to Build and Run
 
-### Building the Project
+Ensure you have a POSIX-compliant environment (Linux, macOS, or WSL on Windows) and `g++` installed.
 
-To compile the server, run the following command from the root of the project directory:
-
+1. Build the project using the provided Makefile:
 ```bash
-g++ -o redis-server src/main.cpp src/RedisServer.cpp src/RedisDatabase.cpp -pthread
+make
 ```
 
-### Running the Server
-
-Start the compiled server executable:
-
+2. Run the compiled server executable:
 ```bash
-./redis-server
+./server
 ```
+*The server will start listening for incoming connections on port 6379.*
 
-You should see output indicating the server has initialized and is listening on the default port `6379`:
-```
-Redis Server initialized!
-Listening on port 6379...
-```
+## How to Connect
 
-### Connecting as a Client
+You can connect to the server using standard tools like `nc` (netcat) or `redis-cli`. 
 
-You can connect to your custom server using the standard `redis-cli` tool from another terminal:
-
+To connect using `nc`:
 ```bash
-redis-cli -p 6379
-127.0.0.1:6379> PING
-PONG
-127.0.0.1:6379> SET mykey "Hello World"
-OK
-127.0.0.1:6379> GET mykey
-"Hello World"
+nc localhost 6379
 ```
 
-## Architecture Summary
-
-- **`RedisServer`**: Manages the TCP socket lifecycle, binds to port 6379, and listens for connections. It spawns a new worker thread for each client and handles tokenizing and routing RESP commands.
-- **`RedisDatabase`**: The thread-safe storage engine. Uses nested `std::unordered_map` structures guarded by `std::mutex` for fast, concurrent data access across all data types (strings, lists, hashes). Also handles disk I/O for the `SAVE` command and startup recovery.
+**Example Session:**
+```text
+SET name John
++OK
+GET name
++John
+PING
++PONG
+```
