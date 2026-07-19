@@ -87,6 +87,22 @@ void RedisServer::handleClient(int client_fd) {
             if (tokens.size() >= 2) response = db.llen(tokens[1]);
             else response = "-ERR wrong number of arguments for 'llen'\r\n";
         }
+        else if (tokens[0] == "HSET" || tokens[0] == "hset") {
+            if (tokens.size() >= 4) response = db.hset(tokens[1], tokens[2], tokens[3]);
+            else response = "-ERR wrong number of arguments for 'hset'\r\n";
+        }
+        else if (tokens[0] == "HGET" || tokens[0] == "hget") {
+            if (tokens.size() >= 3) response = db.hget(tokens[1], tokens[2]);
+            else response = "-ERR wrong number of arguments for 'hget'\r\n";
+        }
+        else if (tokens[0] == "HDEL" || tokens[0] == "hdel") {
+            if (tokens.size() >= 3) response = db.hdel(tokens[1], tokens[2]);
+            else response = "-ERR wrong number of arguments for 'hdel'\r\n";
+        }
+        else if (tokens[0] == "HGETALL" || tokens[0] == "hgetall") {
+            if (tokens.size() >= 2) response = db.hgetall(tokens[1]);
+            else response = "-ERR wrong number of arguments for 'hgetall'\r\n";
+        }
         else {
             response = "-ERR unknown command\r\n";
         }

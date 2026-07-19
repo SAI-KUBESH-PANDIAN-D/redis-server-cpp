@@ -108,3 +108,43 @@ std::string RedisDatabase::llen(const std::string& key) {
     }
     return ":" + std::to_string(list_store[key].size()) + "\r\n";
 }
+
+std::string RedisDatabase::hset(const std::string& key, const std::string& field, const std::string& value) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    hash_store[key][field] = value;
+    return ":1\r\n"; // 1 means field was added
+}
+
+std::string RedisDatabase::hget(const std::string& key, const std::string& field) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    if (hash_store.find(key) != hash_store.end() && hash_store[key].find(field) != hash_store[key].end()) {
+        return "+" + hash_store[key][field] + "\r\n";
+    }
+    return "$-1\r\n"; // Null
+}
+
+std::string RedisDatabase::hdel(const std::string& key, const std::string& field) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    if (hash_store.find(key) != hash_store.end()) {
+        if (hash_store[key].erase(field)) {
+            return ":1\r\n"; // 1 means deleted
+        }
+    }
+    return ":0\r\n"; // 0 means not found
+}
+
+std::string RedisDatabase::hgetall(const std::string& key) {
+    std::lock_guard<std::mutex> lock(db_mutex);
+    if (hash_store.find(key) == hash_store.end() || hash_store[key].empty()) {
+        return "*0\r\n"; // Empty array
+    }
+    
+    auto& inner_map = hash_store[key];
+    std::string response = "*" + std::to_string(inner_map.size() * 2) + "\r\n"; // Size * 2 because we return field AND value
+    
+    for (const auto& pair : inner_map) {
+        response += "$" + std::to_string(pair.first.length()) + "\r\n" + pair.first + "\r\n";
+        response += "$" + std::to_string(pair.second.length()) + "\r\n" + pair.second + "\r\n";
+    }
+    return response;
+}
